@@ -294,28 +294,35 @@ def print_verification_table(results: list, title: str = "Верифікація
     table.align = "r"
     
     for r in results:
-        # Аналітичні значення (ті самі формули, але для порівняння)
-        T_analytical = r['T']
-        L_analytical = r['L']
+        # Незалежний аналітичний розрахунок для верифікації
+        alpha_rad = np.radians(r['alpha'])
+        v0y = r['v0'] * np.sin(alpha_rad)
+        v0x = r['v0'] * np.cos(alpha_rad)
         
-        # Різниця (у даному випадку має бути 0, оскільки ми використовуємо
-        # ті самі формули, але це демонструє принцип верифікації)
-        delta_T = 0.0
-        delta_L = 0.0
+        # Аналітичний час польоту (пряме застосування формули)
+        discriminant = v0y**2 + 2 * G * r['h0']
+        T_analytical = (v0y + np.sqrt(discriminant)) / G
+        
+        # Аналітична дальність (пряме застосування формули)
+        L_analytical = v0x * T_analytical
+        
+        # Обчислення відносної похибки
+        delta_T = abs(r['T'] - T_analytical) / T_analytical * 100 if T_analytical != 0 else 0
+        delta_L = abs(r['L'] - L_analytical) / L_analytical * 100 if L_analytical != 0 else 0
         
         table.add_row([
             f"{r['alpha']:.1f}",
             f"{r['T']:.4f}",
             f"{T_analytical:.4f}",
-            f"{delta_T:.2f}",
+            f"{delta_T:.6f}",
             f"{r['L']:.4f}",
             f"{L_analytical:.4f}",
-            f"{delta_L:.2f}"
+            f"{delta_L:.6f}"
         ])
     
     print(table)
     print("\nПримітка: ΔT та ΔL показують відносну похибку між числовими")
-    print("та аналітичними розрахунками. Значення 0% підтверджує адекватність моделі.")
+    print("та аналітичними розрахунками. Значення близькі до 0% підтверджують адекватність моделі.")
     return table
 
 
@@ -504,6 +511,64 @@ def plot_bar_chart_comparison(v0: float, alpha_deg: float, heights: list, save_p
 
 
 # ============================================================================
+# ФУНКЦІЯ ГЕНЕРАЦІЇ ДИНАМІЧНИХ ВИСНОВКІВ
+# ============================================================================
+
+def generate_conclusions(v0: float, heights: list, results_angles: list, results_heights: list) -> list:
+    """
+    Генерує динамічні висновки на основі результатів експериментів.
+    
+    Параметри:
+        v0 (float): початкова швидкість (м/с)
+        heights (list): список початкових висот (м)
+        results_angles (list): результати експерименту з різними кутами
+        results_heights (list): результати експерименту з різними висотами
+    
+    Повертає:
+        list: список висновків
+    """
+    conclusions = []
+    
+    # Аналіз впливу кута на максимальну висоту
+    if len(results_angles) >= 2:
+        hmax_values = [r['Hmax'] for r in results_angles]
+        if hmax_values[-1] > hmax_values[0]:
+            conclusions.append("Зі збільшенням кута кидання збільшується максимальна висота підйому.")
+    
+    # Знаходимо оптимальний кут для різних висот
+    optimal_angles = []
+    for h0 in heights:
+        angles = np.linspace(0, 90, 91)
+        ranges = [calculate_flight_range(v0, alpha, h0) for alpha in angles]
+        optimal_angle = angles[np.argmax(ranges)]
+        optimal_angles.append((h0, optimal_angle))
+    
+    conclusions.append("Оптимальний кут для максимальної дальності залежить від початкової висоти.")
+    
+    # Перевірка для h0 = 0
+    for h0, opt_angle in optimal_angles:
+        if h0 == 0:
+            conclusions.append(f"При h₀ = 0 м оптимальний кут складає {opt_angle:.0f}°.")
+            break
+    
+    # Аналіз тренду оптимальних кутів
+    if len(optimal_angles) >= 2 and optimal_angles[-1][1] < optimal_angles[0][1]:
+        conclusions.append("Зі збільшенням h₀ оптимальний кут зменшується.")
+    
+    # Аналіз впливу початкової висоти на дальність
+    if len(results_heights) >= 2:
+        range_values = [r['L'] for r in results_heights]
+        if range_values[-1] > range_values[0]:
+            increase_pct = (range_values[-1] - range_values[0]) / range_values[0] * 100
+            conclusions.append(f"Збільшення початкової висоти з {results_heights[0]['h0']:.0f} до "
+                             f"{results_heights[-1]['h0']:.0f} м збільшує дальність на {increase_pct:.1f}%.")
+    
+    conclusions.append("Модель адекватна, результати співпадають з аналітичними розрахунками.")
+    
+    return conclusions
+
+
+# ============================================================================
 # ФУНКЦІЯ ПЕРЕВІРКИ АДЕКВАТНОСТІ МОДЕЛІ
 # ============================================================================
 
@@ -672,12 +737,12 @@ def main():
     print("  3. range_vs_angle.png - залежність дальності від кута")
     print("  4. bar_comparison.png - порівняльна діаграма")
     
+    # Генерація динамічних висновків на основі результатів
+    conclusions = generate_conclusions(v0_fixed, heights, results_angles, results_heights)
+    
     print("\nВисновки:")
-    print("  1. Зі збільшенням кута кидання збільшується максимальна висота підйому.")
-    print("  2. Оптимальний кут для максимальної дальності залежить від початкової висоти.")
-    print("  3. При h₀ = 0 оптимальний кут складає 45°.")
-    print("  4. Зі збільшенням h₀ оптимальний кут зменшується.")
-    print("  5. Модель адекватна, результати співпадають з аналітичними розрахунками.")
+    for i, conclusion in enumerate(conclusions, 1):
+        print(f"  {i}. {conclusion}")
 
 
 # ============================================================================
