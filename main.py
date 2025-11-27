@@ -34,6 +34,9 @@ DEFAULT_H0 = 0           # Початкова висота (м)
 DEFAULT_ALPHA = 45       # Кут кидання (градуси)
 ALPHA_STEP = 1           # Крок зміни кута (градуси)
 
+# Теоретичний оптимальний кут при h0 = 0
+THEORETICAL_OPTIMAL_ANGLE = 45
+
 # Налаштування для візуалізації
 plt.rcParams['font.size'] = 12
 plt.rcParams['axes.unicode_minus'] = False
@@ -188,9 +191,6 @@ def get_trajectory(v0: float, alpha_deg: float, h0: float = 0, num_points: int =
     alpha_rad = np.radians(alpha_deg)
     x_arr = v0 * np.cos(alpha_rad) * t_arr
     y_arr = h0 + v0 * np.sin(alpha_rad) * t_arr - (G * t_arr**2) / 2
-    
-    # Забезпечуємо, щоб траєкторія закінчувалася на y = 0
-    y_arr = np.maximum(y_arr, 0)
     
     return x_arr, y_arr
 
@@ -457,7 +457,8 @@ def plot_optimal_angle_bar_chart(v0: float, heights: list = None,
     
     # Діаграма оптимальних кутів
     bars1 = ax1.bar(range(len(heights)), optimal_angles, color='steelblue', edgecolor='navy')
-    ax1.axhline(y=45, color='red', linestyle='--', linewidth=2, label='α = 45°')
+    ax1.axhline(y=THEORETICAL_OPTIMAL_ANGLE, color='red', linestyle='--', linewidth=2, 
+                label=f'α = {THEORETICAL_OPTIMAL_ANGLE}°')
     ax1.set_xticks(range(len(heights)))
     ax1.set_xticklabels([f'{h}' for h in heights])
     ax1.set_xlabel('Початкова висота h₀, м', fontsize=12)
@@ -503,11 +504,11 @@ def print_summary_table(v0: float, heights: list = None):
         heights = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
     
     table = PrettyTable()
-    table.field_names = ['h₀, м', 'αопт, °', 'Lmax, м', 'T, с', 'Hmax, м', 'Δα від 45°']
+    table.field_names = ['h₀, м', 'αопт, °', 'Lmax, м', 'T, с', 'Hmax, м', f'Δα від {THEORETICAL_OPTIMAL_ANGLE}°']
     
     for h0 in heights:
         opt_alpha, max_L, T, H_max = find_optimal_angle(v0, h0)
-        delta_alpha = opt_alpha - 45
+        delta_alpha = opt_alpha - THEORETICAL_OPTIMAL_ANGLE
         
         table.add_row([
             f'{h0:.1f}',
@@ -568,8 +569,8 @@ def verify_model_adequacy(v0: float = DEFAULT_V0):
     """
     Перевірка адекватності моделі.
     
-    Для h0 = 0 теоретично оптимальний кут має бути 45°.
-    Для h0 > 0 оптимальний кут має бути менше 45°.
+    Для h0 = 0 теоретично оптимальний кут має бути THEORETICAL_OPTIMAL_ANGLE (45°).
+    Для h0 > 0 оптимальний кут має бути менше THEORETICAL_OPTIMAL_ANGLE.
     
     Параметри:
         v0: початкова швидкість для тестування (м/с)
@@ -578,36 +579,36 @@ def verify_model_adequacy(v0: float = DEFAULT_V0):
     print("ПЕРЕВІРКА АДЕКВАТНОСТІ МОДЕЛІ")
     print("="*70)
     
-    # Тест 1: При h0 = 0 оптимальний кут ≈ 45°
-    print("\n--- Тест 1: При h₀ = 0 оптимальний кут має бути ≈ 45° ---")
+    # Тест 1: При h0 = 0 оптимальний кут ≈ THEORETICAL_OPTIMAL_ANGLE
+    print(f"\n--- Тест 1: При h₀ = 0 оптимальний кут має бути ≈ {THEORETICAL_OPTIMAL_ANGLE}° ---")
     opt_alpha, max_L, T, H_max = find_optimal_angle(v0, h0=0, step=0.1)
     
     print(f"v₀ = {v0} м/с, h₀ = 0 м")
     print(f"Знайдений оптимальний кут: α = {opt_alpha:.2f}°")
-    print(f"Теоретичне значення: α = 45°")
-    print(f"Відхилення: {abs(opt_alpha - 45):.2f}°")
+    print(f"Теоретичне значення: α = {THEORETICAL_OPTIMAL_ANGLE}°")
+    print(f"Відхилення: {abs(opt_alpha - THEORETICAL_OPTIMAL_ANGLE):.2f}°")
     
-    if abs(opt_alpha - 45) < 1:
-        print("✓ ТЕСТ ПРОЙДЕНО: оптимальний кут близький до 45°")
+    if abs(opt_alpha - THEORETICAL_OPTIMAL_ANGLE) < 1:
+        print(f"✓ ТЕСТ ПРОЙДЕНО: оптимальний кут близький до {THEORETICAL_OPTIMAL_ANGLE}°")
     else:
-        print("✗ ТЕСТ НЕ ПРОЙДЕНО: оптимальний кут відрізняється від 45°")
+        print(f"✗ ТЕСТ НЕ ПРОЙДЕНО: оптимальний кут відрізняється від {THEORETICAL_OPTIMAL_ANGLE}°")
     
-    # Тест 2: При h0 > 0 оптимальний кут < 45°
-    print("\n--- Тест 2: При h₀ > 0 оптимальний кут має бути < 45° ---")
+    # Тест 2: При h0 > 0 оптимальний кут < THEORETICAL_OPTIMAL_ANGLE
+    print(f"\n--- Тест 2: При h₀ > 0 оптимальний кут має бути < {THEORETICAL_OPTIMAL_ANGLE}° ---")
     
     test_heights = [0, 10, 20, 30, 40, 50]
-    previous_angle = 45
+    previous_angle = THEORETICAL_OPTIMAL_ANGLE
     all_decreasing = True
     
     table = PrettyTable()
-    table.field_names = ['h₀, м', 'αопт, °', 'Менше 45°?', 'Зменшується?']
+    table.field_names = ['h₀, м', 'αопт, °', f'Менше {THEORETICAL_OPTIMAL_ANGLE}°?', 'Зменшується?']
     
     for h0 in test_heights:
         opt_alpha, _, _, _ = find_optimal_angle(v0, h0, step=0.1)
-        less_than_45 = "Так" if opt_alpha < 45 or h0 == 0 else "Ні"
+        less_than_45 = "Так" if opt_alpha <= THEORETICAL_OPTIMAL_ANGLE else "Ні"
         decreasing = "Так" if opt_alpha <= previous_angle else "Ні"
         
-        if h0 > 0 and opt_alpha >= 45:
+        if h0 > 0 and opt_alpha >= THEORETICAL_OPTIMAL_ANGLE:
             all_decreasing = False
         if opt_alpha > previous_angle and h0 > 0:
             all_decreasing = False
