@@ -22,25 +22,26 @@ python lab2_model.py
 
 ```mermaid
 flowchart TD
-    A([Початок]) --> B[Введення вихідних даних:<br/>v0, h0, список кутів alpha]
-    B --> C[Ініціалізація циклу по h0]
-    C --> D[Ініціалізація циклу по alpha]
-    D --> E[Переведення alpha<br/>з градусів у радіани]
-    E --> F[Обчислення проекцій<br/>початкової швидкості]
-    F --> G[Обчислення часу підйому]
-    G --> H[Обчислення максимальної<br/>висоти Hmax]
-    H --> I[Обчислення дискримінанта]
-    I --> J[Обчислення повного<br/>часу польоту T]
-    J --> K[Обчислення дальності<br/>польоту L]
-    K --> L[Збереження результатів:<br/>v0, h0, alpha, T, L, Hmax]
-    L --> M{Є ще<br/>кути alpha?}
-    M -->|Так| D
-    M -->|Ні| N{Є ще<br/>висоти h0?}
-    N -->|Так| C
-    N -->|Ні| O[Виведення таблиці<br/>результатів]
-    O --> P[Побудова графіків:<br/>траєкторії, L від alpha,<br/>Hmax від alpha]
-    P --> Q[Перевірка адекватності<br/>моделі]
-    Q --> R([Кінець])
+    Start([Початок]) --> Input[/Ввід: v0, h0,<br/>alpha_values/]
+    Input --> Init["results = []<br/>g = 9.81"]
+    Init --> LoopH0{"Для кожного h0<br/>у h0_values"}
+    LoopH0 -->|Так| LoopAlpha{"Для кожного alpha<br/>у alpha_values"}
+    LoopAlpha -->|Так| Convert["alpha_rad =<br/>alpha * pi / 180"]
+    Convert --> CalcV["v0x = v0 * cos(alpha_rad)<br/>v0y = v0 * sin(alpha_rad)"]
+    CalcV --> CalcTup["t_up = v0y / g"]
+    CalcTup --> CalcHmax["Hmax = h0 +<br/>v0^2 * sin^2(alpha_rad) / (2*g)"]
+    CalcHmax --> CalcDisc["disc = v0^2 * sin^2(alpha_rad)<br/>+ 2 * g * h0"]
+    CalcDisc --> CalcT["T = (v0y + sqrt(disc)) / g"]
+    CalcT --> CalcL["L = v0x * T"]
+    CalcL --> Save["Зберегти у results:<br/>(v0, alpha, h0, T, L, Hmax)"]
+    Save --> LoopAlpha
+    LoopAlpha -->|Ні| LoopH0
+    LoopH0 -->|Ні| Output[/Вивід таблиці<br/>результатів/]
+    Output --> Plot1["Побудова графіка:<br/>траєкторії для різних alpha"]
+    Plot1 --> Plot2["Побудова графіка:<br/>L від alpha для різних h0"]
+    Plot2 --> Plot3["Побудова графіка:<br/>Hmax від alpha для різних h0"]
+    Plot3 --> Check["Перевірка адекватності:<br/>тестовий приклад"]
+    Check --> End([Кінець])
 ```
 
 GitHub відобразить цю діаграму безпосередньо на сторінці репозиторію.
