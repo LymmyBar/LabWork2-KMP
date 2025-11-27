@@ -20,3 +20,7 @@ db.sqlite3
 # System
 .DS_Store
 Thumbs.db
+
+# Lab2 - generated output files
+lab2/*.png
+lab2/output/
